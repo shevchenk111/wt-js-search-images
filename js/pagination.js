@@ -1,8 +1,3 @@
-import apiService from './api';
-import { lightbox } from './lightbox';
-import iziToast from 'izitoast';
-import 'izitoast/dist/css/iziToast.min.css';
-
 const searchForm = document.querySelector('.search-form');
 const galleryContainer = document.querySelector('.gallery');
 const searchQueryInput = document.getElementById('search-bar');
@@ -15,6 +10,7 @@ let currentPage = 1;
 let currentQuery = '';
 let totalPages = 0;
 let isFirstSearch = true;
+let lightbox = null;
 
 searchForm.addEventListener('submit', async event => {
   event.preventDefault();
@@ -29,10 +25,7 @@ searchForm.addEventListener('submit', async event => {
   }
 
   if (searchQuery === currentQuery) {
-    showToast(
-      'warning',
-      'Будь ласка, змініть або введіть нове значення для пошуку.'
-    );
+    showToast('warning', 'Введіть новий запит для пошуку');
     return;
   }
 
@@ -64,17 +57,17 @@ async function fetchGallery(page) {
     const result = await apiService.fetchGallery();
     const { hits, totalHits } = result;
 
-    if (hits.length === 0) {
+    if (!hits || hits.length === 0) {
       showToast(
         'error',
-        'Вибачте, немає зображень, які відповідають вашому пошуковому запиту. Будь ласка спробуйте ще раз.'
+        'Вибачте, немає зображень, які відповідають вашому пошуковому запиту.'
       );
       clearGallery();
       hidePagination();
       return;
     }
 
-    totalPages = Math.ceil(totalHits / 40);
+    totalPages = Math.ceil(totalHits / apiService.perPage);
 
     if (isFirstSearch) {
       showToast('success', `Ура! Ми знайшли ${totalHits} зображень.`);
@@ -92,10 +85,7 @@ async function fetchGallery(page) {
     }
   } catch (error) {
     console.error('Error fetching gallery:', error);
-    showToast(
-      'error',
-      'Під час отримання галереї зображень сталася помилка.'
-    );
+    showToast('error', 'Сталася помилка під час завантаження зображень.');
   }
 }
 
@@ -111,34 +101,44 @@ function renderGallery(elements) {
         comments,
         downloads,
       }) => `
-      <div class="photo-card">
-        <a href="${largeImageURL}">
-          <img class="photo-img" src="${webformatURL}" alt="${tags}" loading="lazy" />
-        </a>
-        <div class="info">
-          <p class="info-item">
-            <b>Вподобайки</b>
-            <span class="info__span">${likes}</span>
-          </p>
-          <p class="info-item">
-            <b>Перегляди</b>
-            <span class="info__span">${views}</span>
-          </p>
-          <p class="info-item">
-            <b>Коментарі</b>
-            <span class="info__span">${comments}</span>
-          </p>
-          <p class="info-item">
-            <b>Завантаження</b>
-            <span class="info__span">${downloads}</span>
-          </p>
+        <div class="photo-card">
+          <a href="${largeImageURL}">
+            <img class="photo-img" src="${webformatURL}" alt="${tags}" loading="lazy" />
+          </a>
+          <div class="info">
+            <p class="info-item">
+              <b>Likes</b>
+              <span class="info__span">${likes}</span>
+            </p>
+            <p class="info-item">
+              <b>Views</b>
+              <span class="info__span">${views}</span>
+            </p>
+            <p class="info-item">
+              <b>Comments</b>
+              <span class="info__span">${comments}</span>
+            </p>
+            <p class="info-item">
+              <b>Downloads</b>
+              <span class="info__span">${downloads}</span>
+            </p>
+          </div>
         </div>
-      </div>`
+      `
     )
     .join('');
 
-  galleryContainer.insertAdjacentHTML('beforeend', markup);
-  lightbox.refresh();
+  galleryContainer.innerHTML = markup;
+
+  if (!lightbox) {
+    lightbox = new SimpleLightbox('.photo-card a', {
+      captions: true,
+      captionsData: 'alt',
+      captionDelay: 250,
+    });
+  } else {
+    lightbox.refresh();
+  }
 }
 
 function createPagination(pageCount) {
@@ -180,12 +180,12 @@ function hidePagination() {
 
 function disableButton(button) {
   button.classList.add('disabled');
-  button.setAttribute('disabled', true);
+  button.disabled = true;
 }
 
 function enableButton(button) {
   button.classList.remove('disabled');
-  button.removeAttribute('disabled');
+  button.disabled = false;
 }
 
 function handlePageButtonsStatus() {
@@ -205,7 +205,6 @@ function handlePageButtonsStatus() {
 function handleActivePageNumber() {
   document.querySelectorAll('.pagination-number').forEach((button, index) => {
     button.classList.remove('active');
-
     if (index + 1 === currentPage) {
       button.classList.add('active');
     }
