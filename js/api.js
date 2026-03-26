@@ -1,56 +1,43 @@
-import axios from 'axios';
-
-const API_KEY = 'ВСТАВ_СВІЙ_PIXABAY_KEY';
+const API_KEY = '55192474';
 const BASE_URL = 'https://pixabay.com/api/';
 const DEFAULT_PER_PAGE = 40;
 
-function apiService() {
-  const service = {
-    searchQuery: '',
-    page: 1,
-    PER_PAGE: DEFAULT_PER_PAGE,
-  };
+const apiService = {
+  searchQuery: '',
+  page: 1,
+  perPage: DEFAULT_PER_PAGE,
 
-  const fetchGallery = async () => {
+  async fetchGallery() {
     try {
       const response = await axios.get(BASE_URL, {
         params: {
           key: API_KEY,
-          q: service.searchQuery,
+          q: this.searchQuery,
           image_type: 'photo',
           orientation: 'horizontal',
           safesearch: true,
-          page: service.page,
-          per_page: service.PER_PAGE,
+          page: this.page,
+          per_page: this.perPage,
         },
       });
 
       return response.data;
     } catch (error) {
-      console.error(error);
-      throw new Error('Failed to fetch data');
+      console.error('Помилка запиту:', error);
+      throw error;
     }
-  };
+  },
 
-  const resetPage = () => {
-    service.page = 1;
-  };
+  resetPage() {
+    this.page = 1;
+  },
 
-  const setQuery = newQuery => {
-    service.searchQuery = newQuery;
-    resetPage();
-  };
+  setQuery(newQuery) {
+    this.searchQuery = newQuery;
+    this.resetPage();
+  },
 
-  const setPage = currentPage => {
-    service.page = currentPage;
-  };
-
-  return {
-    fetchGallery,
-    resetPage,
-    setQuery,
-    setPage,
-  };
-}
-
-export default apiService();
+  setPage(currentPage) {
+    this.page = currentPage;
+  },
+};
