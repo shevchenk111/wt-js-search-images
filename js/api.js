@@ -1,4 +1,4 @@
-const API_KEY = 'user_id:55192474';
+const API_KEY = '55192474-4ac14a3eef79a9c3a5b4b0580';
 const BASE_URL = 'https://pixabay.com/api/';
 const DEFAULT_PER_PAGE = 40;
 
